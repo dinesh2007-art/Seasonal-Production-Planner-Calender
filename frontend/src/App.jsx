@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { 
   LayoutDashboard, PlusCircle, BarChart3, Settings, 
-  ChevronRight, ClipboardList, Database, Sparkles 
+  ChevronRight, ClipboardList, Database, Sparkles, Calendar as CalendarIcon
 } from "lucide-react";
 
 import PlanningDashboard from "./components/PlanningDashboard";
@@ -9,6 +9,7 @@ import PlanningEntryForm from "./components/PlanningEntryForm";
 import DetailHistoryView from "./components/DetailHistoryView";
 import ReportsAnalytics from "./components/ReportsAnalytics";
 import AdminConfiguration from "./components/AdminConfiguration";
+import CalendarView from "./components/CalendarView";
 import { apiFetch, getOfflineStatus } from "./apiClient";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:3000";
@@ -100,6 +101,11 @@ export default function App() {
           title: "Reports & Analytics",
           breadcrumbs: [{ label: "Dashboard", active: false, action: () => setView("dashboard") }, { label: "Reports", active: true }]
         };
+      case "calendar":
+        return {
+          title: "Production & Task Calendar",
+          breadcrumbs: [{ label: "Dashboard", active: false, action: () => setView("dashboard") }, { label: "Calendar", active: true }]
+        };
       case "admin":
         return {
           title: "Admin Settings",
@@ -135,6 +141,11 @@ export default function App() {
           <li className={`nav-item ${view === "form" && !editPlan ? "active" : ""}`}>
             <button onClick={handleCreateNewClick}>
               <PlusCircle size={18} /> Add New Plan
+            </button>
+          </li>
+          <li className={`nav-item ${view === "calendar" ? "active" : ""}`}>
+            <button onClick={() => setView("calendar")}>
+              <CalendarIcon size={18} /> Calendar View
             </button>
           </li>
           <li className={`nav-item ${view === "reports" ? "active" : ""}`}>
@@ -219,6 +230,10 @@ export default function App() {
 
           {view === "reports" && (
             <ReportsAnalytics plans={plans} />
+          )}
+
+          {view === "calendar" && (
+            <CalendarView plans={plans} />
           )}
 
           {view === "admin" && (
