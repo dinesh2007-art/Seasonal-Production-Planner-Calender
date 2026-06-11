@@ -1,0 +1,19 @@
+{
+  "name": "seasonal-production-planning-backend",
+  "version": "1.0.0",
+  "description": "Backend prototype for Sharadha Stores Seasonal Production Planning Calendar.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node tests/health.test.js && node tests/api.test.js",
+    "test:health": "node tests/health.test.js",
+    "test:api": "node tests/api.test.js"
+  },
+  "keywords": [
+    "seasonal-production-planning",
+    "backend",
+    "sharadha-stores"
+  ],
+  "author": "Student2-Backend",
+  "license": "MIT"
+}

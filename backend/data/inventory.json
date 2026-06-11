@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "seasonal_production_planning_id": 1,
+    "admin": "Sharadha Admin",
+    "ingredientName": "Besan (Gram Flour)",
+    "availableQuantity": 50,
+    "requiredQuantity": 80,
+    "unit": "kg",
+    "status": "pending",
+    "created_at": "2026-06-11T00:00:00.000Z",
+    "updated_at": "2026-06-11T00:00:00.000Z"
+  },
+  {
+    "id": 2,
+    "seasonal_production_planning_id": 1,
+    "admin": "Sharadha Admin",
+    "ingredientName": "Ghee",
+    "availableQuantity": 100,
+    "requiredQuantity": 90,
+    "unit": "kg",
+    "status": "available",
+    "created_at": "2026-06-11T00:00:00.000Z",
+    "updated_at": "2026-06-11T00:00:00.000Z"
+  }
+]
