@@ -4,7 +4,7 @@ import {
   Archive, FileText, ShoppingBag, Box, Plus, Calendar, User
 } from "lucide-react";
 
-export default function DetailHistoryView({ planId, onBack, onEdit, API_BASE }) {
+export default function DetailHistoryView({ planId, onBack, onEdit, API_BASE, apiFetch }) {
   const [plan, setPlan] = useState(null);
   const [orders, setOrders] = useState([]);
   const [inventory, setInventory] = useState([]);
@@ -28,18 +28,18 @@ export default function DetailHistoryView({ planId, onBack, onEdit, API_BASE }) 
     setError(null);
     try {
       // 1. Fetch Plan Details
-      const planRes = await fetch(`${API_BASE}/api/seasonal_production_planning/${planId}`);
+      const planRes = await apiFetch(`/api/seasonal_production_planning/${planId}`);
       if (!planRes.ok) throw new Error("Failed to fetch plan details.");
-      const planJson = await planRes.ok ? await planRes.json() : {};
+      const planJson = await planRes.json();
       setPlan(planJson.data);
 
       // 2. Fetch Orders linked to this plan
-      const ordersRes = await fetch(`${API_BASE}/api/orders?seasonal_production_planning_id=${planId}`);
+      const ordersRes = await apiFetch(`/api/orders?seasonal_production_planning_id=${planId}`);
       const ordersJson = await ordersRes.json();
       setOrders(ordersJson.data || []);
 
       // 3. Fetch Inventory linked to this plan
-      const invRes = await fetch(`${API_BASE}/api/inventory?seasonal_production_planning_id=${planId}`);
+      const invRes = await apiFetch(`/api/inventory?seasonal_production_planning_id=${planId}`);
       const invJson = await invRes.json();
       setInventory(invJson.data || []);
     } catch (err) {
@@ -57,7 +57,7 @@ export default function DetailHistoryView({ planId, onBack, onEdit, API_BASE }) 
     if (!window.confirm(`Are you sure you want to change status to "${newStatus}"?`)) return;
 
     try {
-      const response = await fetch(`${API_BASE}/api/seasonal_production_planning/${planId}/status`, {
+      const response = await apiFetch(`/api/seasonal_production_planning/${planId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus })
@@ -80,7 +80,7 @@ export default function DetailHistoryView({ planId, onBack, onEdit, API_BASE }) 
     }
     
     try {
-      const response = await fetch(`${API_BASE}/api/orders`, {
+      const response = await apiFetch(`/api/orders`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -112,7 +112,7 @@ export default function DetailHistoryView({ planId, onBack, onEdit, API_BASE }) 
     }
     
     try {
-      const response = await fetch(`${API_BASE}/api/inventory`, {
+      const response = await apiFetch(`/api/inventory`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { PlusCircle, Save, XCircle, AlertCircle } from "lucide-react";
 
-export default function PlanningEntryForm({ editPlan, onSaveSuccess, onCancel, API_BASE }) {
+export default function PlanningEntryForm({ editPlan, onSaveSuccess, onCancel, API_BASE, apiFetch }) {
   // Load defaults from config if available
   const getDefaults = () => {
     const saved = localStorage.getItem("sharadha_stores_config");
@@ -134,13 +134,13 @@ export default function PlanningEntryForm({ editPlan, onSaveSuccess, onCancel, A
     setFormMessage({ type: "info", text: "Saving plan..." });
 
     try {
-      const url = editPlan
-        ? `${API_BASE}/api/seasonal_production_planning/${editPlan.id}`
-        : `${API_BASE}/api/seasonal_production_planning`;
+      const path = editPlan
+        ? `/api/seasonal_production_planning/${editPlan.id}`
+        : `/api/seasonal_production_planning`;
 
       const method = editPlan ? "PUT" : "POST";
 
-      const response = await fetch(url, {
+      const response = await apiFetch(path, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData)

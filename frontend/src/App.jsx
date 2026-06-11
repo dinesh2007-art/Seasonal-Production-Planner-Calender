@@ -9,6 +9,7 @@ import PlanningEntryForm from "./components/PlanningEntryForm";
 import DetailHistoryView from "./components/DetailHistoryView";
 import ReportsAnalytics from "./components/ReportsAnalytics";
 import AdminConfiguration from "./components/AdminConfiguration";
+import { apiFetch, getOfflineStatus } from "./apiClient";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:3000";
 
@@ -25,15 +26,22 @@ export default function App() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE}/api/seasonal_production_planning`);
-      if (!response.ok) throw new Error("Failed to load plans from backend.");
+      const response = await apiFetch("/api/seasonal_production_planning");
+      if (!response.ok) throw new Error("Failed to load plans.");
       const result = await response.json();
       setPlans(result.data || []);
-      setApiStatus({ label: "API Online", class: "ok" });
+      
+      const offline = getOfflineStatus();
+      if (offline) {
+        setApiStatus({ label: "Local Storage Mode", class: "warning" });
+        setError(null); // Local storage mode works fine without server errors
+      } else {
+        setApiStatus({ label: "API Online", class: "ok" });
+      }
     } catch (err) {
       setPlans([]);
-      setApiStatus({ label: "API Offline", class: "" });
-      setError("Start the backend server to load and save plans.");
+      setApiStatus({ label: "Local Mode Error", class: "" });
+      setError("Unable to load plans. Please check browser storage.");
     } finally {
       setIsLoading(false);
     }
@@ -195,6 +203,7 @@ export default function App() {
               onSaveSuccess={handleSaveSuccess} 
               onCancel={() => setView("dashboard")} 
               API_BASE={API_BASE}
+              apiFetch={apiFetch}
             />
           )}
 
@@ -204,6 +213,7 @@ export default function App() {
               onBack={() => setView("dashboard")} 
               onEdit={handleEditPlan}
               API_BASE={API_BASE}
+              apiFetch={apiFetch}
             />
           )}
 
