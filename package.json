@@ -1,0 +1,24 @@
+{
+  "name": "sharadha-stores-sppc",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "backend": "cd backend && npm install && npm start",
+    "backend:dev": "cd backend && npm install && npm run dev"
+  },
+  "dependencies": {
+    "@sentry/react": "^10.62.0",
+    "@supabase/supabase-js": "^2.108.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^3.8.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^6.0.5"
+  }
+}
