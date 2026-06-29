@@ -16,24 +16,26 @@ export default function handler(req, res) {
   }
 
   const { slug } = req.query;
-  const path = slug ? '/' + slug.join('/') : '/';
+  const segments = Array.isArray(slug) ? slug : (slug ? [slug] : []);
   
-  // Route requests
-  if (path.startsWith('/admin/login') && req.method === 'POST') {
-    return handleAdminLogin(req, res);
-  }
-  if (path.startsWith('/admin/credentials')) {
-    if (req.method === 'GET') return handleGetCredentials(req, res);
-    if (req.method === 'PUT') return handleUpdateCredentials(req, res);
+  // Build path from segments
+  const [first, second, ...rest] = segments;
+  
+  // Route admin endpoints first
+  if (first === 'admin') {
+    if (second === 'login' && req.method === 'POST') {
+      return handleAdminLogin(req, res);
+    }
+    if (second === 'credentials') {
+      if (req.method === 'GET') return handleGetCredentials(req, res);
+      if (req.method === 'PUT') return handleUpdateCredentials(req, res);
+    }
+    return res.status(404).json(createResponse(null, 'Admin endpoint not found'));
   }
   
-  // Table endpoints (production_plans, orders, inventory, requirements, action_history)
-  const match = path.match(/^\/(\w+)(?:\/(.+))?$/);
-  if (!match) {
-    return res.status(404).json(createResponse(null, 'Not found'));
-  }
-
-  const [, table, id] = match;
+  // Route table endpoints
+  const table = first;
+  const id = second;
   const validTables = ['production_plans', 'orders', 'inventory', 'requirements', 'action_history'];
   
   if (!validTables.includes(table)) {
