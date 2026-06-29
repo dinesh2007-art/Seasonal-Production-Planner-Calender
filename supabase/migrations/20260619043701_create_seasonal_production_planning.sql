@@ -83,3 +83,48 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER set_updated_at_plans BEFORE UPDATE ON production_plans FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER set_updated_at_orders BEFORE UPDATE ON orders FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER set_updated_at_inventory BEFORE UPDATE ON inventory FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+-- Requirements
+CREATE TABLE IF NOT EXISTS requirements (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  product_name TEXT NOT NULL,
+  quantity_needed INTEGER NOT NULL,
+  ingredients JSONB NOT NULL,
+  auto_created TEXT[] DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Admin credentials
+CREATE TABLE IF NOT EXISTS admin_credentials (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  username TEXT NOT NULL UNIQUE,
+  password TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Insert default admin:password if not exists
+INSERT INTO admin_credentials (username, password)
+VALUES ('admin', 'password')
+ON CONFLICT (username) DO NOTHING;
+
+-- Enable RLS
+ALTER TABLE requirements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE admin_credentials ENABLE ROW LEVEL SECURITY;
+
+-- Policies for Requirements
+CREATE POLICY "select_requirements" ON requirements FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "insert_requirements" ON requirements FOR INSERT TO anon, authenticated WITH CHECK (true);
+CREATE POLICY "update_requirements" ON requirements FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "delete_requirements" ON requirements FOR DELETE TO anon, authenticated USING (true);
+
+-- Policies for Admin Credentials
+CREATE POLICY "select_admin_credentials" ON admin_credentials FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "insert_admin_credentials" ON admin_credentials FOR INSERT TO anon, authenticated WITH CHECK (true);
+CREATE POLICY "update_admin_credentials" ON admin_credentials FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "delete_admin_credentials" ON admin_credentials FOR DELETE TO anon, authenticated USING (true);
+
+-- Triggers for updated_at
+CREATE TRIGGER set_updated_at_requirements BEFORE UPDATE ON requirements FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE TRIGGER set_updated_at_admin_credentials BEFORE UPDATE ON admin_credentials FOR EACH ROW EXECUTE FUNCTION update_updated_at();

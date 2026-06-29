@@ -1,4 +1,21 @@
+import { createClient } from '@supabase/supabase-js';
+
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+// Helper to safely parse JSON from a response and provide a meaningful error message
+async function safeJson(response) {
+  const text = await response.text();
+  try {
+    return text ? JSON.parse(text) : {};
+  } catch (e) {
+    throw new Error(
+      `Failed to parse API response as JSON. Received text: "${text.slice(0, 150)}". ` +
+      `Ensure that your backend server is running and returning valid JSON.`
+    );
+  }
+}
 
 // Custom query builder that works with our local API and supports chaining
 function createApiQuery(table) {
@@ -17,7 +34,7 @@ function createApiQuery(table) {
       if (operation === 'select') {
         const res = await fetch(`${API_BASE}/${table}`);
         if (!res.ok) throw new Error(`API error: ${res.status}`);
-        const json = await res.json();
+        const json = await safeJson(res);
         let data = json.data || [];
 
         // Apply filters
@@ -69,7 +86,7 @@ function createApiQuery(table) {
             body: JSON.stringify(item),
           });
           if (!res.ok) throw new Error(`Insert failed: ${res.status}`);
-          const json = await res.json();
+          const json = await safeJson(res);
           results.push(...(json.data || []));
         }
         return { data: results, error: null };
@@ -83,14 +100,14 @@ function createApiQuery(table) {
             body: JSON.stringify(payload),
           });
           if (!res.ok) throw new Error(`Update failed: ${res.status}`);
-          const json = await res.json();
+          const json = await safeJson(res);
           return { data: json.data || [], error: null };
         } else {
           // Bulk update or non-id filters (like status)
           // We fetch all records first, filter in memory, and perform updates for matches
           const getRes = await fetch(`${API_BASE}/${table}`);
           if (!getRes.ok) throw new Error(`API fetch error before update: ${getRes.status}`);
-          const getJson = await getRes.json();
+          const getJson = await safeJson(getRes);
           let itemsToUpdate = getJson.data || [];
 
           if (Object.keys(filters).length > 0) {
@@ -111,7 +128,7 @@ function createApiQuery(table) {
               body: JSON.stringify(payload),
             });
             if (res.ok) {
-              const json = await res.json();
+              const json = await safeJson(res);
               results.push(...(json.data || []));
             }
           }
@@ -125,13 +142,13 @@ function createApiQuery(table) {
             method: 'DELETE',
           });
           if (!res.ok) throw new Error(`Delete failed: ${res.status}`);
-          const json = await res.json();
+          const json = await safeJson(res);
           return { data: json.data || [], error: null };
         } else {
           // Bulk delete or filtering (like status)
           const getRes = await fetch(`${API_BASE}/${table}`);
           if (!getRes.ok) throw new Error(`API fetch error before delete: ${getRes.status}`);
-          const getJson = await getRes.json();
+          const getJson = await safeJson(getRes);
           let itemsToDelete = getJson.data || [];
 
           if (Object.keys(filters).length > 0) {
@@ -150,7 +167,7 @@ function createApiQuery(table) {
               method: 'DELETE',
             });
             if (res.ok) {
-              const json = await res.json();
+              const json = await safeJson(res);
               results.push(...(json.data || []));
             }
           }
@@ -228,48 +245,120 @@ function createApiQuery(table) {
   return query;
 }
 
-export const supabase = {
-  from: (table) => createApiQuery(table),
-  auth: {
-    login: async (username, password) => {
-      try {
-        const res = await fetch(`${API_BASE}/admin/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password }),
-        });
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error || 'Login failed');
-        return { data: json.data, error: null };
-      } catch (err) {
-        return { data: null, error: err.message };
+// Exported client
+export let supabase;
+
+if (supabaseUrl && supabaseAnonKey) {
+  console.log('⚡ Connecting directly to Supabase API at:', supabaseUrl);
+  const client = createClient(supabaseUrl, supabaseAnonKey);
+
+  // Extend with custom admin auth helpers matching the local API structure
+  client.auth.login = async (username, password) => {
+    try {
+      const { data, error } = await client
+        .from('admin_credentials')
+        .select('*')
+        .eq('username', username)
+        .maybeSingle();
+
+      if (error) throw error;
+      if (data && data.password === password) {
+        return { data: { success: true }, error: null };
       }
-    },
-    getCredentials: async () => {
-      try {
-        const res = await fetch(`${API_BASE}/admin/credentials`);
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error || 'Failed to fetch credentials');
-        return { data: json.data, error: null };
-      } catch (err) {
-        return { data: null, error: err.message };
+      return { data: null, error: 'Invalid username or password' };
+    } catch (err) {
+      return { data: null, error: err.message };
+    }
+  };
+
+  client.auth.getCredentials = async () => {
+    try {
+      const { data, error } = await client
+        .from('admin_credentials')
+        .select('username')
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+      return { data, error: null };
+    } catch (err) {
+      return { data: null, error: err.message };
+    }
+  };
+
+  client.auth.updateCredentials = async (username, password) => {
+    try {
+      const { data: existing } = await client
+        .from('admin_credentials')
+        .select('id')
+        .limit(1)
+        .maybeSingle();
+
+      let res;
+      if (existing) {
+        res = await client
+          .from('admin_credentials')
+          .update({ username, password })
+          .eq('id', existing.id)
+          .select();
+      } else {
+        res = await client
+          .from('admin_credentials')
+          .insert([{ username, password }])
+          .select();
       }
-    },
-    updateCredentials: async (username, password) => {
-      try {
-        const res = await fetch(`${API_BASE}/admin/credentials`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password }),
-        });
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error || 'Failed to update credentials');
-        return { data: json.data, error: null };
-      } catch (err) {
-        return { data: null, error: err.message };
+
+      if (res.error) throw res.error;
+      return { data: { username, message: 'Credentials updated successfully' }, error: null };
+    } catch (err) {
+      return { data: null, error: err.message };
+    }
+  };
+
+  supabase = client;
+} else {
+  console.log('✅ Using local mock backend API at:', API_BASE);
+  supabase = {
+    from: (table) => createApiQuery(table),
+    auth: {
+      login: async (username, password) => {
+        try {
+          const res = await fetch(`${API_BASE}/admin/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password }),
+          });
+          const json = await safeJson(res);
+          if (!res.ok) throw new Error(json.error || 'Login failed');
+          return { data: json.data, error: null };
+        } catch (err) {
+          return { data: null, error: err.message };
+        }
+      },
+      getCredentials: async () => {
+        try {
+          const res = await fetch(`${API_BASE}/admin/credentials`);
+          const json = await safeJson(res);
+          if (!res.ok) throw new Error(json.error || 'Failed to fetch credentials');
+          return { data: json.data, error: null };
+        } catch (err) {
+          return { data: null, error: err.message };
+        }
+      },
+      updateCredentials: async (username, password) => {
+        try {
+          const res = await fetch(`${API_BASE}/admin/credentials`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password }),
+          });
+          const json = await safeJson(res);
+          if (!res.ok) throw new Error(json.error || 'Failed to update credentials');
+          return { data: json.data, error: null };
+        } catch (err) {
+          return { data: null, error: err.message };
+        }
       }
     }
-  }
-};
-
-console.log('✅ Using local backend API at', API_BASE);
+  };
+}
